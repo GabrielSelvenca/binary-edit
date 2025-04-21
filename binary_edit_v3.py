@@ -2,6 +2,7 @@ import os
 import re
 import time
 import random
+import sys
 
 def editar_arquivo(caminho):
     try:
@@ -29,32 +30,51 @@ def editar_arquivo(caminho):
             with open(caminho, 'wb') as arquivo:
                 arquivo.write(conteudo)
 
-            print(f"[✓] Alterado: {numero_antigo.decode()} → {novo_numero}")
             return True
         else:
-            print("[!] Nenhum número válido encontrado.")
             return False
-
-    except Exception as e:
+    except:
         return False
+
+def mostrar_titulo():
+    titulo = (
+        "╔══════════════════════════════════════╗\n"
+        "║   BINARY EDIT - V3 • MONITORAMENTO   ║\n"
+        "╚══════════════════════════════════════╝\n\n\n"
+    )
+    sys.stdout.write(titulo + "\n")
+    sys.stdout.flush()
+
+def mostrar_status(mensagem):
+    sys.stdout.write(mensagem + '\r')
+    sys.stdout.flush()
 
 caminho = os.path.join(os.path.dirname(__file__), "proinfo.bin")
 
-print("Iniciando loop infinito de edição...")
+mostrar_titulo()
+
 tempo_inicio_erro = None
+falhas_consecutivas = 0
+alteracoes = 0
 
 while True:
+    alteracoes += 1
     if os.path.exists(caminho):
         sucesso = editar_arquivo(caminho)
         if sucesso:
+            falhas_consecutivas = 0
             tempo_inicio_erro = None
+            status = f"[🟢] Status: OK | Alterações: {alteracoes} | Falhas consecutivas: {falhas_consecutivas}"
         else:
+            falhas_consecutivas += 1
             if tempo_inicio_erro is None:
                 tempo_inicio_erro = time.time()
-            else:
-                duracao_erro = time.time() - tempo_inicio_erro
-                if duracao_erro >= 60:
-                    print("⚠️  WARN: Mais de 1 minuto com erro ao editar o arquivo.")
+            duracao = int(time.time() - tempo_inicio_erro)
+            status = f"[🟡] Status: Falhando há {duracao}s | Alterações: {alteracoes} | Falhas consecutivas: {falhas_consecutivas}"
     else:
-        print(f"[!] Arquivo não encontrado: {caminho}")
+        status = f"[🔴] Arquivo não encontrado: {caminho}"
+        falhas_consecutivas += 1
         time.sleep(1)
+
+    mostrar_status(status)
+    time.sleep(0.5)
