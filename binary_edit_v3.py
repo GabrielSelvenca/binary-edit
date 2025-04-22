@@ -1,35 +1,45 @@
 import os
 import re
 import time
-import random
+import secrets
 import sys
 
-def editar_arquivo(caminho):
+def gerar_codigo_distinto(anterior, usados, tentativas=100):
+    caracteres = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    anterior = anterior.upper()
+    for _ in range(tentativas):
+        novo = list(anterior)
+        indices = secrets.sample(range(9), secrets.choice([4, 5]))
+        for i in indices:
+            novo[i] = secrets.choice(caracteres)
+        novo_codigo = ''.join(novo)
+
+        if novo_codigo != anterior and novo_codigo not in usados:
+            diferenca = sum(1 for a, b in zip(anterior, novo_codigo) if a != b)
+            if diferenca >= 4:
+                return novo_codigo
+    return None
+
+def editar_arquivo(caminho, usados_codigos):
     try:
         with open(caminho, 'rb') as arquivo:
             conteudo = arquivo.read()
 
         padrao = re.search(rb'\b\w{9}\b', conteudo)
+        print("Padrão encontrado:", padrao.group() if padrao else "Nenhum")
         if padrao:
-            numero_antigo = padrao.group()
-            num_chars_to_change = random.choice([4, 5])
-            indices = random.sample(range(9), num_chars_to_change)
-            novo_numero = list(numero_antigo.decode().upper())
+            numero_antigo = padrao.group().decode().upper()
+            novo_codigo = gerar_codigo_distinto(numero_antigo, usados_codigos)
 
-            for i in indices:
-                novo_numero[i] = random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-            novo_numero = ''.join(novo_numero)
+            if not novo_codigo:
+                return False
 
-            while novo_numero == numero_antigo.decode().upper():
-                for i in indices:
-                    novo_numero[i] = random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-                novo_numero = ''.join(novo_numero)
-
-            conteudo = conteudo.replace(numero_antigo, novo_numero.encode())
+            conteudo = conteudo.replace(numero_antigo.encode(), novo_codigo.encode())
 
             with open(caminho, 'wb') as arquivo:
                 arquivo.write(conteudo)
 
+            usados_codigos.add(novo_codigo)
             return True
         else:
             return False
@@ -39,7 +49,7 @@ def editar_arquivo(caminho):
 def mostrar_titulo():
     titulo = (
         "╔══════════════════════════════════════╗\n"
-        "║   BINARY EDIT - V3 • MONITORAMENTO   ║\n"
+        "║   BINARY EDIT - V4 • MONITORAMENTO   ║\n"
         "╚══════════════════════════════════════╝\n\n\n"
     )
     sys.stdout.write(titulo + "\n")
@@ -56,11 +66,12 @@ mostrar_titulo()
 tempo_inicio_erro = None
 falhas_consecutivas = 0
 alteracoes = 0
+codigos_usados = set()
 
 while True:
     alteracoes += 1
     if os.path.exists(caminho):
-        sucesso = editar_arquivo(caminho)
+        sucesso = editar_arquivo(caminho, codigos_usados)
         if sucesso:
             falhas_consecutivas = 0
             tempo_inicio_erro = None
@@ -77,4 +88,4 @@ while True:
         time.sleep(1)
 
     mostrar_status(status)
-    time.sleep(0.5)
+    time.sleep(10)
