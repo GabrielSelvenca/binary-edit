@@ -2,6 +2,7 @@ import os
 import re
 import time
 import secrets
+import random
 import sys
 
 def gerar_codigo_distinto(anterior, usados, tentativas=100):
@@ -9,7 +10,7 @@ def gerar_codigo_distinto(anterior, usados, tentativas=100):
     anterior = anterior.upper()
     for _ in range(tentativas):
         novo = list(anterior)
-        indices = secrets.sample(range(9), secrets.choice([4, 5]))
+        indices = random.sample(range(9), secrets.choice([4, 5]))
         for i in indices:
             novo[i] = secrets.choice(caracteres)
         novo_codigo = ''.join(novo)
@@ -24,18 +25,20 @@ def editar_arquivo(caminho, usados_codigos):
     try:
         with open(caminho, 'rb') as arquivo:
             conteudo = arquivo.read()
+            
+        inicio = conteudo[:9]
 
-        padrao = re.search(rb'\b\w{9}\b', conteudo)
-        print("Padrão encontrado:", padrao.group() if padrao else "Nenhum")
+        padrao = re.search(rb'[A-Za-z0-9]{9}', inicio)
         if padrao:
-            numero_antigo = padrao.group().decode().upper()
+            numero_antigo_bytes = padrao.group()
+            numero_antigo = numero_antigo_bytes.decode()
             novo_codigo = gerar_codigo_distinto(numero_antigo, usados_codigos)
 
             if not novo_codigo:
                 return False
-
-            conteudo = conteudo.replace(numero_antigo.encode(), novo_codigo.encode())
-
+            
+            conteudo = novo_codigo.encode() + conteudo[9:]
+            
             with open(caminho, 'wb') as arquivo:
                 arquivo.write(conteudo)
 
@@ -43,19 +46,22 @@ def editar_arquivo(caminho, usados_codigos):
             return True
         else:
             return False
-    except:
+    except Exception as e:
+        print(f"Error: {e}")
         return False
 
 def mostrar_titulo():
     titulo = (
         "╔══════════════════════════════════════╗\n"
-        "║   BINARY EDIT - V4 • MONITORAMENTO   ║\n"
+        "║      BINARY EDIT - V4 • LOOPING      ║\n"
         "╚══════════════════════════════════════╝\n\n\n"
     )
     sys.stdout.write(titulo + "\n")
     sys.stdout.flush()
 
 def mostrar_status(mensagem):
+    largura_terminal = os.get_terminal_size().columns
+    sys.stdout.write(' ' * largura_terminal + '\r')
     sys.stdout.write(mensagem + '\r')
     sys.stdout.flush()
 
@@ -69,10 +75,10 @@ alteracoes = 0
 codigos_usados = set()
 
 while True:
-    alteracoes += 1
     if os.path.exists(caminho):
         sucesso = editar_arquivo(caminho, codigos_usados)
         if sucesso:
+            alteracoes += 1
             falhas_consecutivas = 0
             tempo_inicio_erro = None
             status = f"[🟢] Status: OK | Alterações: {alteracoes} | Falhas consecutivas: {falhas_consecutivas}"
@@ -83,9 +89,9 @@ while True:
             duracao = int(time.time() - tempo_inicio_erro)
             status = f"[🟡] Status: Falhando há {duracao}s | Alterações: {alteracoes} | Falhas consecutivas: {falhas_consecutivas}"
     else:
-        status = f"[🔴] Arquivo não encontrado: {caminho}"
+        status = f"[🔴] Arquivo não encontrado: {caminho} | Falha fatal"
         falhas_consecutivas += 1
         time.sleep(1)
 
     mostrar_status(status)
-    time.sleep(10)
+    time.sleep(15)
