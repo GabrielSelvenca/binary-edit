@@ -65,7 +65,7 @@ def mostrar_status(mensagem):
     sys.stdout.write(mensagem + '\r')
     sys.stdout.flush()
 
-caminho = os.path.join(os.path.dirname(__file__), "proinfo.bin")
+caminho = os.path.join(os.path.dirname(sys.executable), "proinfo.bin")
 
 mostrar_titulo()
 
